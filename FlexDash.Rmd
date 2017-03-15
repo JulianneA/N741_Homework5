@@ -1,9 +1,10 @@
 ---
-title: "FlexDashboard of Wong Data"
+title: "FlexDashboard of Wong et al (2001) Data"
 output: 
   flexdashboard::flex_dashboard:
     orientation: columns
     vertical_layout: fill
+    
 ---
 
 ```{r setup }
@@ -13,9 +14,10 @@ data(Wong)
 #library(shiny)
 library(dplyr)
 library(ggplot2)
+library(rsconnect)
 ```
 ```{r}
-Wong$durgroup <- case_when(
+Wong$durgrp <- case_when(
   (Wong$duration <= 0) ~ 1,
   (Wong$duration > 0 & Wong$duration <= 2) ~ 2,
   (Wong$duration > 2 & Wong$duration <= 4) ~ 3,
@@ -30,7 +32,7 @@ Wong$durgroup <- case_when(
   (Wong$duration > 20 & Wong$duration <= 50) ~ 12,
   (Wong$duration > 50 & Wong$duration <= 100) ~ 13,
   (Wong$duration > 100 ) ~ 14)
-Wong$durgroup <- factor(Wong$durgroup,
+Wong$durgroup <- factor(Wong$durgrp,
                   levels = c(1,2,3,4,5,6,7,8,9,10,11,12,13,14),
                   labels = c("<24 hours",
                              "1-2 day",
@@ -46,6 +48,25 @@ Wong$durgroup <- factor(Wong$durgroup,
                              "20-49 days",
                              "50-99 days",
                            "100+ days"))
+
+Wong$durgraph <- factor(Wong$durgrp,
+                  levels = c(1,2,3,4,5,6,7,8,9,10,11,12,13,14),
+                  labels = c("<1",
+                             "1-2",
+                             "3-4",
+                             "5-6",
+                             "7-8",
+                             "9-10",
+                             "11-12",
+                             "13-14",
+                             "15-16",
+                             "17-18",
+                             "19-20",
+                             "20-49",
+                             "50-99",
+                           "100+"))
+
+Wong$meanIQ <- ((Wong$viq+Wong$piq)/2)
 ```
 
 
@@ -71,7 +92,7 @@ knitr::kable(x = ByDur[1:5],
 
 ```
 
-Column {data-width=350}
+Column {.tabset}
 -----------------------------------------------------------------------
 
 ### PIQ score based on duration of Coma
@@ -79,20 +100,18 @@ Column {data-width=350}
 ```{r}
 Wong %>% 
   #select(sex, duration, piq) %>%
-  group_by(durgroup) %>%
-  ggplot(aes(x=durgroup, y=piq)) +
-  geom_boxplot() 
-```
-
-### MeanIQ score as a function of coma duration
-
-```{r}
-Wong$meanIQ <- ((Wong$viq+Wong$piq)/2)
+  group_by(durgraph) %>%
+  ggplot(aes(x=durgraph, y=piq)) +
+  geom_boxplot()  +
+  xlab("Duration of Coma (days)") +
+  ylab("Performance IQ Score")
 
 Wong %>% 
-  ggplot(aes(x=duration, y=meanIQ)) +
+  ggplot(aes(x=duration, y=piq)) +
   geom_point() +
-  geom_smooth(model=lm(meanIQ ~ duration, data = Wong))
+  geom_smooth(model=lm(piq ~ duration, data = Wong)) +
+  xlab("Duration of Coma (days)")+
+  ylab("Performance IQ Score")
 ```
 
 
@@ -101,8 +120,37 @@ Wong %>%
 ```{r}
 Wong %>% 
   #select(sex, duration, piq) %>%
-  group_by(durgroup) %>%
-  ggplot(aes(x=durgroup, y=viq)) +
-  geom_boxplot() 
+  group_by(durgraph) %>%
+  ggplot(aes(x=durgraph, y=viq)) +
+  geom_boxplot() +
+  xlab("Duration of Coma (days)")+
+  ylab("Verbal IQ Score")
+
+Wong %>% 
+  ggplot(aes(x=duration, y=viq)) +
+  geom_point() +
+  geom_smooth(model=lm(viq ~ duration, data = Wong)) +
+  xlab("Duration of Coma (days)")+
+  ylab("Verbal IQ Score")
 ```
+
+### MeanIQ score based on duration of Coma
+
+```{r}
+Wong %>% 
+  #select(sex, duration, piq) %>%
+  group_by(durgraph) %>%
+  ggplot(aes(x=durgraph, y=meanIQ)) +
+  geom_boxplot()  +
+  xlab("Duration of Coma (days)")+
+  ylab("Mean IQ Score")
+
+Wong %>% 
+  ggplot(aes(x=duration, y=meanIQ)) +
+  geom_point() +
+  geom_smooth(model=lm(meanIQ ~ duration, data = Wong)) +
+  xlab("Duration of Coma (days)")+
+  ylab("Mean IQ Score")
+```
+  
 

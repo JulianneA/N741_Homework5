@@ -44,6 +44,7 @@ Wong$agegrp <- factor(Wong$agegrp,
 
 summary(Wong)
 ```
+## 1. Non-parametric statistics by gender
 ```{r, echo=FALSE}
 SummaryStats <- Wong %>%
   group_by(sex) %>%
@@ -63,7 +64,7 @@ knitr::kable(x = SummaryStats[1:5],
 
 *Median and IQR in columns 2 and 3 reflect the number of days that pass between awakening from coma and IQ assessment.*
 
-
+## 2. Parametric statistics by gender
 ```{r, echo=FALSE}
 SummaryStats2 <- Wong %>%
   group_by(sex) %>%
@@ -81,7 +82,7 @@ knitr::kable(x = SummaryStats2[1:5],
              caption = "Summary of IQ Outcome Measures by Patient Gender")
 ```
 
-
+## 3. Frequencies and Relative Percentages of Patients by Age
 ```{r, echo=FALSE}
 
 AgeGrp<- count(Wong, agegrp, sort=FALSE)
@@ -96,8 +97,8 @@ knitr::kable(x = AgeGrp[1:3],
                caption = "Frequencies and Relative Percentages of Patients in Each Age Group")
 ```
 
-
-```{r, echo=FALSE}
+## 4. Modeling PIQ by gender and age
+```{r, include=FALSE}
 Wong$Patient_sex <- ifelse(Wong$sex == "Male", 1, ifelse(Wong$sex == "Female", 2, 99))
 
 reg1 <- lm(piq ~ age + Patient_sex, data = Wong)
@@ -129,8 +130,8 @@ summary(reg1)$df
 | |  n-p |  `r summary(reg1)$df[2]`  
 | |  p*  |   `r summary(reg1)$df[3]`  
 
-
-```{r, echo=FALSE}
+## 5. Modeling PIQ by gender, age, days since coma and coma duration
+```{r, , include=FALSE}
 reg2 <- lm(piq ~ age + Patient_sex + days + duration, data = Wong)
 
 reg2.1<-summary(reg2)$coef
@@ -154,25 +155,29 @@ summary(reg2)$df
 | |  n-p |  `r summary(reg2)$df[2]`  
 | |  p*  |   `r summary(reg2)$df[3]`  
 
-
+## 6. Comparing Linear Models
 ```{r, echo=FALSE}
 
-knitr::kable(x = anova(reg1))
-             caption = "Modeling PIQ by Age and Patient Sex"
-knitr::kable(x = anova(reg2))
-             caption = "Modeling PIQ by Age, Patient Sex, Days Post-coma, and Duration of Coma"
+knitr::kable(x = anova(reg1),
+             caption = "Modeling PIQ by Age and Patient Sex")
+             
+knitr::kable(x = anova(reg2),
+             caption = "Modeling PIQ by Age, Patient Sex, Days Post-coma, and Duration of Coma")
              
 Anova<- anova(reg1, reg2)
 
-knitr::kable(x = Anova, row.names = TRUE)
+knitr::kable(x = Anova, row.names = TRUE,
              col.names = c("Residual DF",
                           "Residual Sum of Squares",
                            "DF",
                            "Sum of Squares",
                            "F value",
-                           "p-value")
-             caption = "Comparison of Two Linear Models of PIQ"
+                           "p-value"),
+             caption = "Comparison of Two Linear Models of PIQ")
 ```
+
+## 7. FlexDashboard
+Flexdashboard available here: [http://rpubs.com/jammirati/259010](http://rpubs.com/jammirati/259010)
 
 ### References
 Wong, P. P., Monette, G., and Weiner, N. I. (2001) Mathematical models of cognitive recovery. Brain Injury, 15, 519–530.
