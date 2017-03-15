@@ -1,0 +1,178 @@
+---
+title: 'N741: Homework 5'
+author: "Julianne; Julianne.Ammirati@emory.edu"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+  github_document: default
+---
+# Homework 5
+Rmarkdown code available here: [https://github.com/JulianneA/N741_Homework5](https://github.com/JulianneA/N741_Homework5)
+```{r setup, include=FALSE}
+library(car)
+data(Wong)
+library(shiny)
+
+library(dplyr)
+#library(stargazer)
+```
+```{r, include=FALSE}
+# add an age group variable
+Wong$agegrp <- case_when(
+  (Wong$age > 0 & Wong$age <= 10) ~ 1,
+  (Wong$age > 10 & Wong$age <= 20) ~ 2,
+  (Wong$age > 20 & Wong$age <= 30) ~ 3,
+  (Wong$age > 30 & Wong$age <= 40) ~ 4,
+  (Wong$age > 40 & Wong$age <= 50) ~ 5,
+  (Wong$age > 50 & Wong$age <= 60) ~ 6,
+  (Wong$age > 60 & Wong$age <= 70) ~ 7,
+  (Wong$age > 70 & Wong$age <= 100) ~ 8)
+
+# convert to factor, add code levels and labels
+Wong$agegrp <- factor(Wong$agegrp,
+                  levels = c(1,2,3,4,5,6,7,8),
+                  labels = c("Ages 1-10",
+                             "Ages 11-10",
+                             "Ages 21-10",
+                             "Ages 31-10",
+                             "Ages 41-10",
+                             "Ages 51-10",
+                             "Ages 61-70",
+                             "Ages 71-100"))
+
+summary(Wong)
+```
+```{r, echo=FALSE}
+SummaryStats <- Wong %>%
+  group_by(sex) %>%
+  summarise(meddays = median(days, na.rm=TRUE), #meandays = mean(days, na.rm=TRUE), botquartdays = quantile(days, 0.25, na.rm=TRUE), topquartdays = quantile(days, 0.75, na.rm=TRUE), 
+            IQRdays = (quantile(days, 0.75, na.rm=TRUE)-quantile(days, 0.25, na.rm=TRUE)), 
+            meddur = median(duration, na.rm=TRUE), #meandur = mean(duration, na.rm=TRUE), botquartdur = quantile(duration, 0.25, na.rm=TRUE), topquartdur = quantile(duration, 0.75, na.rm=TRUE), 
+            IQRdur = (quantile(duration, 0.75, na.rm=TRUE)-quantile(duration, 0.25, na.rm=TRUE)))
+
+knitr::kable(x = SummaryStats[1:5],
+             col.names = c("Sex of Patient",
+                           "Median Days Post-Coma*",
+                           "IQR of Days Post-Coma*",
+                           "Median Duration of Coma", 
+                           "IQR of Duration of Coma"),
+             caption = "Summary of Duration of Coma and Number of Days Post-Coma that Assessments Occured by Patient Gender")
+```
+
+*Median and IQR in columns 2 and 3 reflect the number of days that pass between awakening from coma and IQ assessment.*
+
+
+```{r, echo=FALSE}
+SummaryStats2 <- Wong %>%
+  group_by(sex) %>%
+  summarise(MeanPIQ = mean(piq, na.rm=TRUE),
+            SDPIQ = sd(piq, na.rm=TRUE), 
+            MeanVIQ = mean(viq, na.rm=TRUE),
+            SDVIQ = sd(viq, na.rm=TRUE))
+
+knitr::kable(x = SummaryStats2[1:5],
+             col.names = c("Sex of Patient",
+                           "Mean Performance IQ",
+                           "Standard Deviation of Performance IQ",
+                           "Mean Verbal IQ",
+                           "Standard Deviation of Verbal IQ"),
+             caption = "Summary of IQ Outcome Measures by Patient Gender")
+```
+
+
+```{r, echo=FALSE}
+
+AgeGrp<- count(Wong, agegrp, sort=FALSE)
+TotNum<- sum(AgeGrp$n)
+AgeGrp<- mutate(AgeGrp, RelPerc = round((AgeGrp$n/TotNum)*100, digits=2))
+
+
+knitr::kable(x = AgeGrp[1:3],
+              col.names = c("Age Group",
+                             "Number of Patients",
+                              "Relative Percentage"),
+               caption = "Frequencies and Relative Percentages of Patients in Each Age Group")
+```
+
+
+```{r, echo=FALSE}
+Wong$Patient_sex <- ifelse(Wong$sex == "Male", 1, ifelse(Wong$sex == "Female", 2, 99))
+
+reg1 <- lm(piq ~ age + Patient_sex, data = Wong)
+reg1.1<-summary(reg1)$coef
+summary(reg1)$adj.r.squared
+summary(reg1)$r.squared
+summary(reg1)$df
+
+#summary(reg1)$coef
+#              row.names = c("Intercept",
+#                             "Age of Patient",
+#                              "Patient Sex"),
+#              caption = ")
+
+
+#stargazer(reg1, title="Simple Linear Regression Results", align=TRUE)
+#KNITR not used because I wanted more values in there outside of the parameter-p-value data
+
+```
+
+|Parameter | Estimate     | Standard Error | t-value      |p-value 
+|------------- | -------------|--------------  | -------------|-------------
+|Intercept | `r reg1.1[1,1]` | `r reg1.1[1,2]`  | `r reg1.1[1,3]`  | `r reg1.1[1,4]`| `r summary(reg1)$df[1]` 
+|Age | `r reg1.1[2,1]` | `r reg1.1[2,2]`  | `r reg1.1[2,3]`  | `r reg1.1[2,4]`
+|Patient Sex | `r reg1.1[3,1]` | `r reg1.1[3,2]`  | `r reg1.1[3,3]`  | `r reg1.1[3,4]`  
+| R-squared |  `r summary(reg1)$r.squared`  
+|Adjusted R-squared |  `r summary(reg1)$adj.r.squared`  
+|Degrees of Freedom |  p  |  `r summary(reg1)$df[1]`  
+| |  n-p |  `r summary(reg1)$df[2]`  
+| |  p*  |   `r summary(reg1)$df[3]`  
+
+
+```{r, echo=FALSE}
+reg2 <- lm(piq ~ age + Patient_sex + days + duration, data = Wong)
+
+reg2.1<-summary(reg2)$coef
+summary(reg2)$adj.r.squared
+summary(reg2)$r.squared
+summary(reg2)$df
+
+#AGAIN: KNITR not used because I wanted more values in there outside of the parameter-p-value data
+```
+
+|Parameter | Estimate     | Standard Error | t-value      |p-value 
+|------------- | -------------|--------------  | -------------|-------------
+|Intercept | `r reg2.1[1,1]` | `r reg2.1[1,2]`  | `r reg2.1[1,3]`  | `r reg2.1[1,4]`| `r summary(reg2)$df[1]` 
+|Age | `r reg2.1[2,1]` | `r reg2.1[2,2]`  | `r reg2.1[2,3]`  | `r reg2.1[2,4]`
+|Patient Sex | `r reg2.1[3,1]` | `r reg2.1[3,2]`  | `r reg2.1[3,3]`  | `r reg2.1[3,4]`  
+|Days Post-Coma| `r reg2.1[4,1]` | `r reg2.1[4,2]`  | `r reg2.1[4,3]`  | `r reg2.1[4,4]`  
+|Duration of Coma | `r reg2.1[5,1]` | `r reg2.1[5,2]`  | `r reg2.1[5,3]`  | `r reg2.1[5,4]`  
+| R-squared |  `r summary(reg2)$r.squared`  
+|Adjusted R-squared |  `r summary(reg2)$adj.r.squared`  
+|Degrees of Freedom |  p  |  `r summary(reg2)$df[1]`  
+| |  n-p |  `r summary(reg2)$df[2]`  
+| |  p*  |   `r summary(reg2)$df[3]`  
+
+
+```{r, echo=FALSE}
+
+knitr::kable(x = anova(reg1))
+             caption = "Modeling PIQ by Age and Patient Sex"
+knitr::kable(x = anova(reg2))
+             caption = "Modeling PIQ by Age, Patient Sex, Days Post-coma, and Duration of Coma"
+             
+Anova<- anova(reg1, reg2)
+
+knitr::kable(x = Anova, row.names = TRUE)
+             col.names = c("Residual DF",
+                          "Residual Sum of Squares",
+                           "DF",
+                           "Sum of Squares",
+                           "F value",
+                           "p-value")
+             caption = "Comparison of Two Linear Models of PIQ"
+```
+
+### References
+Wong, P. P., Monette, G., and Weiner, N. I. (2001) Mathematical models of cognitive recovery. Brain Injury, 15, 519–530.

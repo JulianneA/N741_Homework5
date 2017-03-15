@@ -1,0 +1,108 @@
+---
+title: "FlexDashboard of Wong Data"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup }
+library(flexdashboard)
+library(car)
+data(Wong)
+#library(shiny)
+library(dplyr)
+library(ggplot2)
+```
+```{r}
+Wong$durgroup <- case_when(
+  (Wong$duration <= 0) ~ 1,
+  (Wong$duration > 0 & Wong$duration <= 2) ~ 2,
+  (Wong$duration > 2 & Wong$duration <= 4) ~ 3,
+  (Wong$duration > 4 & Wong$duration <= 6) ~ 4,
+  (Wong$duration > 6 & Wong$duration <= 8) ~ 5,
+  (Wong$duration > 8 & Wong$duration <= 10) ~ 6,
+  (Wong$duration > 10 & Wong$duration <= 12) ~ 7,
+  (Wong$duration > 12 & Wong$duration <= 14) ~ 8,
+   (Wong$duration > 14 & Wong$duration <= 16) ~ 9,
+  (Wong$duration > 16 & Wong$duration <= 18) ~ 10,
+  (Wong$duration > 18 & Wong$duration <= 20) ~ 11,
+  (Wong$duration > 20 & Wong$duration <= 50) ~ 12,
+  (Wong$duration > 50 & Wong$duration <= 100) ~ 13,
+  (Wong$duration > 100 ) ~ 14)
+Wong$durgroup <- factor(Wong$durgroup,
+                  levels = c(1,2,3,4,5,6,7,8,9,10,11,12,13,14),
+                  labels = c("<24 hours",
+                             "1-2 day",
+                             "3-4 days",
+                             "5-6 days",
+                             "7-8 days",
+                             "9-10 days",
+                             "11-12 days",
+                             "13-14 days",
+                             "15-16 days",
+                             "17-18 days",
+                             "19-20 days",
+                             "20-49 days",
+                             "50-99 days",
+                           "100+ days"))
+```
+
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Summary of IQ Outcome Measures by Coma Duration
+
+```{r}
+ByDur<-Wong %>% 
+  group_by(durgroup) %>%
+  summarise(MeanPIQ = mean(piq, na.rm=TRUE),
+            SDPIQ = sd(piq, na.rm=TRUE), 
+            MeanVIQ = mean(viq, na.rm=TRUE),
+            SDVIQ = sd(viq, na.rm=TRUE))
+
+knitr::kable(x = ByDur[1:5],
+             col.names = c("Duration of Coma",
+                           "Mean Performance IQ",
+                           "Standard Deviation of Performance IQ",
+                           "Mean Verbal IQ",
+                           "Standard Deviation of Verbal IQ"))
+
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### PIQ score based on duration of Coma
+
+```{r}
+Wong %>% 
+  #select(sex, duration, piq) %>%
+  group_by(durgroup) %>%
+  ggplot(aes(x=durgroup, y=piq)) +
+  geom_boxplot() 
+```
+
+### MeanIQ score as a function of coma duration
+
+```{r}
+Wong$meanIQ <- ((Wong$viq+Wong$piq)/2)
+
+Wong %>% 
+  ggplot(aes(x=duration, y=meanIQ)) +
+  geom_point() +
+  geom_smooth(model=lm(meanIQ ~ duration, data = Wong))
+```
+
+
+### VIQ score based on duration of Coma
+
+```{r}
+Wong %>% 
+  #select(sex, duration, piq) %>%
+  group_by(durgroup) %>%
+  ggplot(aes(x=durgroup, y=viq)) +
+  geom_boxplot() 
+```
+
